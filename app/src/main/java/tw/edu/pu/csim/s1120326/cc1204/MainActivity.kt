@@ -36,87 +36,105 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+
+// 主頁面組件
 @Composable
 fun Start(m: Modifier) {
+    // 管理顯示狀態，控制顯示哪一個頁面
     var showQuizPage by remember { mutableStateOf(false) }
     var showLearningPage by remember { mutableStateOf(false) }
-    var expanded by remember { mutableStateOf(false) }  // Control background expansion
+    var showStartPage by remember { mutableStateOf(true) }  // 新增控制主頁顯示的變數
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.LightGray) // Default background color
+            .background(Color.LightGray)
     ) {
-        // Full-screen background image
+        // 顯示全螢幕背景圖片
         Image(
-            painter = painterResource(id = R.drawable.background), // Replace with your background resource
+            painter = painterResource(id = R.drawable.background),
             contentDescription = "背景圖",
-            contentScale = if (expanded) ContentScale.Crop else ContentScale.FillBounds, // Full-screen display mode
-            modifier = Modifier.fillMaxSize() // Fill the entire screen
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
         )
-    }
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
 
-    )
-    {
-        // If showQuizPage is true, display the quiz page
-        if (showQuizPage) {
-            QuizPage()
-        }
-        // If showLearningPage is true, display the learning page
-        else if (showLearningPage) {
-            LearningPage()
-        } else {
-            // Main screen with two buttons
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = m
-            ) {
-                Button(
-                    onClick = {
-                        showQuizPage = true // Show quiz page
-                    },
-                    modifier = Modifier.padding(16.dp)
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (showStartPage) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = m
                 ) {
-                    Text("測驗")
-                }
+                    Button(
+                        onClick = { showQuizPage = true; showStartPage = false },
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .height(60.dp)  // 調整按鈕高度
+                            .width(200.dp)  // 調整按鈕寬度
+                    ) {
+                        Text("測驗",
+                            style = TextStyle(
+                                fontSize = 24.sp, // 設定字體大小
+                            fontWeight = FontWeight.Bold)
+                        )
+                    }
 
-                Button(
-                    onClick = {
-                        showLearningPage = true // Show learning page
-                    },
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text("學習")
+                    Button(
+                        onClick = { showLearningPage = true; showStartPage = false },
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .height(60.dp)  // 調整按鈕高度
+                            .width(200.dp)  // 調整按鈕寬度
 
+
+                    ) {
+                        Text("學習",
+                            style = TextStyle(
+                                fontSize = 24.sp, // 設定字體大小
+                                fontWeight = FontWeight.Bold)
+                        )
+
+
+                    }
                 }
+            } else if (showQuizPage) {
+                QuizPage() // 顯示測驗頁面
+            } else if (showLearningPage) {
+                LearningPage(onFinish = {
+                    showLearningPage = false // 按下完成後隱藏學習頁面
+                    showStartPage = true // 顯示主頁
+                })
             }
         }
     }
 }
 
+// 學習頁面組件
 @Composable
-fun LearningPage() {
-    var expanded by remember { mutableStateOf(false) }  // Control background expansion
+fun LearningPage(onFinish: () -> Unit) { // 添加 onFinish 回調
+    var expanded by remember { mutableStateOf(false) }
 
+    // 顯示背景色
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.LightGray) // Default background color
+            .background(Color.LightGray)
     ) {
-        // Full-screen background image
+        // 顯示全螢幕背景圖片
         Image(
-            painter = painterResource(id = R.drawable.cnmb), // Replace with your background resource
+            painter = painterResource(id = R.drawable.cnmb),
             contentDescription = "背景圖",
-            contentScale = if (expanded) ContentScale.Crop else ContentScale.FillBounds, // Full-screen display mode
-            modifier = Modifier.fillMaxSize() // Fill the entire screen
+            contentScale = if (expanded) ContentScale.Crop else ContentScale.FillBounds,
+            modifier = Modifier.fillMaxSize()
         )
     }
 
-    // Fruit images and corresponding audio resources
-    val fruit = listOf(
+    val context = LocalContext.current
+    val fruits = listOf(
         Triple(R.drawable.durian, listOf(R.raw.durianc, R.raw.duriane, R.raw.duriant), "榴蓮"),
         Triple(R.drawable.apple, listOf(R.raw.applec, R.raw.applee, R.raw.applet), "蘋果"),
         Triple(R.drawable.avocado, listOf(R.raw.avocadoc, R.raw.avocadoe, R.raw.avocadot), "酪梨"),
@@ -136,12 +154,11 @@ fun LearningPage() {
         Triple(R.drawable.pineapple, listOf(R.raw.pineapplec, R.raw.pineapplee, R.raw.pineapplet), "鳳梨"),
         Triple(R.drawable.strawberry, listOf(R.raw.strawberryc, R.raw.strawberrye, R.raw.strawberryt), "草莓"),
         Triple(R.drawable.watermelon, listOf(R.raw.watermelonc, R.raw.watermelone, R.raw.watermelont), "西瓜"),
-        Triple(R.drawable.tomato, listOf(R.raw.tomatoc, R.raw.tomatoe, R.raw.tomatot), "番茄"),
+        Triple(R.drawable.tomato, listOf(R.raw.tomatoc, R.raw.tomatoe, R.raw.tomatot), "番茄")
     )
-    val success = Triple(R.drawable.success, listOf(R.raw.success), "完成") // Handle success separately
-    val context = LocalContext.current
-    val allItems = fruit + success
-    var currentIndex by remember { mutableStateOf(0) } // Current page index
+    val success = Triple(R.drawable.success, listOf(R.raw.success), "完成")
+    val allItems = fruits + success
+    var currentIndex by remember { mutableStateOf(0) }
 
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -152,11 +169,9 @@ fun LearningPage() {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(16.dp)
         ) {
-            // Current fruit data
             val currentFruit = allItems[currentIndex]
             val languages = if (currentFruit == success) listOf("完成") else listOf("中文", "英文", "台語")
 
-            // Button area
             languages.forEachIndexed { langIndex, language ->
                 Button(
                     onClick = {
@@ -164,7 +179,7 @@ fun LearningPage() {
                             context,
                             currentFruit.second.getOrElse(langIndex) { currentFruit.second[0] }
                         )
-                        mediaPlayer.start()
+                        mediaPlayer.start()  // 播放語音
                         mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
                     },
                     modifier = Modifier
@@ -181,7 +196,6 @@ fun LearningPage() {
                 }
             }
 
-            // Image of current fruit
             Image(
                 painter = painterResource(id = currentFruit.first),
                 contentDescription = "${currentFruit.third} 圖片",
@@ -191,15 +205,13 @@ fun LearningPage() {
             )
         }
 
-        // Page navigation buttons
         Row(
             modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically // 垂直對齊
+        ){
             Button(
-                onClick = {
-                    if (currentIndex > 0) currentIndex--
-                },
+                onClick = { if (currentIndex > 0) currentIndex-- },
                 enabled = currentIndex > 0
             ) {
                 Text("上一個")
@@ -208,50 +220,33 @@ fun LearningPage() {
             Spacer(modifier = Modifier.width(16.dp))
 
             Button(
-                onClick = {
-                    if (currentIndex < allItems.size - 1) currentIndex++
-                },
+                onClick = { if (currentIndex < allItems.size - 1) currentIndex++ },
                 enabled = currentIndex < allItems.size - 1
             ) {
                 Text("下一個")
             }
-        }
-    }
-}
 
-@Composable
-fun Quiz(m: Modifier) {
-    var showQuizPage by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier.fillMaxSize().background(Color.LightGray)
-    ) {
-        // Main screen with buttons
-        if (showQuizPage) {
-            QuizPage()
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = m
-            ) {
+            if (currentIndex == allItems.size - 1) {
                 Button(
-                    onClick = { showQuizPage = true },
-                    modifier = Modifier.padding(16.dp)
+                    onClick = { onFinish() }, // 呼叫 onFinish 回到主頁
+                    modifier = Modifier.padding(20.dp)
                 ) {
-                    Text("開始測驗")
+                    Text("結束")
                 }
+
             }
+
         }
     }
 }
+
+// 測驗頁面組件
 @Composable
 fun QuizPage() {
-    // List of fruits and their images
     val fruits = listOf(
-        Pair(R.drawable.durian,"榴蓮"),
-        Pair(R.drawable.apple,"蘋果"),
-        Pair(R.drawable.avocado,"酪梨"),
+        Pair(R.drawable.durian, "榴蓮"),
+        Pair(R.drawable.apple, "蘋果"),
+        Pair(R.drawable.avocado, "酪梨"),
         Pair(R.drawable.banana, "香蕉"),
         Pair(R.drawable.cantaloupe, "哈密瓜"),
         Pair(R.drawable.cherries, "櫻桃"),
@@ -271,15 +266,11 @@ fun QuizPage() {
         Pair(R.drawable.tomato, "番茄")
     )
 
-    val questions = generateQuestions(fruits)
-
+    val questions = remember { generateQuestions(fruits) }
     var currentQuestionIndex by remember { mutableStateOf(0) }
     var selectedAnswer by remember { mutableStateOf("") }
-    var buttonColor by remember { mutableStateOf(Color.Gray) }
+    val buttonColors = remember { mutableStateMapOf<String, Color>() }
 
-    val context = LocalContext.current
-
-    // Current question data
     val currentQuestion = questions[currentQuestionIndex]
 
     Box(
@@ -291,25 +282,31 @@ fun QuizPage() {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(16.dp)
         ) {
-            // Show the current image
             Image(
                 painter = painterResource(id = currentQuestion.imageId),
                 contentDescription = "Fruit Image",
                 modifier = Modifier.size(200.dp).padding(bottom = 20.dp)
             )
 
-            // Display the fruit name buttons
             currentQuestion.answers.forEach { answer ->
+                val color = buttonColors[answer] ?: Color.Gray
                 Button(
                     onClick = {
                         selectedAnswer = answer
-                        buttonColor = if (answer == currentQuestion.correctAnswer) Color.Green else Color.Red
+                        buttonColors.clear()
+                        currentQuestion.answers.forEach { option ->
+                            buttonColors[option] = if (option == currentQuestion.correctAnswer) {
+                                Color.Green
+                            } else {
+                                Color.Red
+                            }
+                        }
                     },
                     modifier = Modifier
                         .padding(8.dp)
                         .fillMaxWidth()
                         .height(50.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = buttonColor)
+                    colors = ButtonDefaults.buttonColors(containerColor = color)
                 ) {
                     Text(
                         text = answer,
@@ -318,22 +315,19 @@ fun QuizPage() {
                 }
             }
 
-
-
             Row(
                 modifier = Modifier
-                    .fillMaxWidth() // 确保 Row 填满宽度
-                    .padding(16.dp), // 设置 Row 的 padding
-                horizontalArrangement = Arrangement.SpaceBetween, // 在水平方向上均匀分布按钮
-                verticalAlignment = Alignment.CenterVertically // 垂直方向居中对齐
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
-            Button(
+                Button(
                     onClick = {
                         if (currentQuestionIndex < questions.size - 1) {
                             currentQuestionIndex++
                             selectedAnswer = ""
-                            buttonColor = Color.Gray
+                            buttonColors.clear()
                         }
                     },
                     enabled = selectedAnswer.isNotEmpty()
@@ -346,30 +340,42 @@ fun QuizPage() {
 }
 
 
+
+
+
+
+
+
+
+
+
+
+// 題目資料類別
 data class Question(
-    val imageId: Int,
-    val correctAnswer: String,
-    val answers: List<String>
+    val imageId: Int, // 圖片資源 ID
+    val correctAnswer: String, // 正確答案
+    val answers: List<String> // 答案選項
 )
 
+// 生成隨機題目的函數
 fun generateQuestions(fruits: List<Pair<Int, String>>): List<Question> {
     val questions = mutableListOf<Question>()
 
     repeat(10) {
-        // Randomly choose a correct answer
+        // 隨機選擇正確答案
         val correctAnswerIndex = Random.nextInt(fruits.size)
         val correctAnswer = fruits[correctAnswerIndex].second
 
-        // Randomly select two other incorrect answers
+        // 隨機選擇兩個錯誤答案
         val incorrectAnswers = fruits.filter { it.second != correctAnswer }
             .shuffled()
             .take(2)
             .map { it.second }
 
-        // Shuffle the answers
+        // 將答案洗牌
         val answers = (incorrectAnswers + correctAnswer).shuffled()
 
-        // Create a new question
+        // 創建新的問題
         questions.add(
             Question(
                 imageId = fruits[correctAnswerIndex].first,
@@ -382,10 +388,13 @@ fun generateQuestions(fruits: List<Pair<Int, String>>): List<Question> {
     return questions
 }
 
+// 預覽函數
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
     Cc1204Theme {
-        Start(m = Modifier)
+        Start(m = Modifier) // 預覽主頁面
     }
 }
+
+
