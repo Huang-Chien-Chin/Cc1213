@@ -1,5 +1,6 @@
 package tw.edu.pu.csim.s1120326.cc1204
 
+import android.content.Context
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -40,17 +41,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+// 讀取獎牌數量
+fun loadMedalCount(context: Context): Int {
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    return sharedPreferences.getInt("medal_count", 0)
+}
+
+// 儲存獎牌數量
+fun saveMedalCount(context: Context, medalCount: Int) {
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    with(sharedPreferences.edit()) {
+        putInt("medal_count", medalCount)
+        apply()
+    }
+}
 
 // 主頁面組件
 @Composable
 fun Start(m: Modifier) {
+    val context = LocalContext.current
+    // 在第一次組件創建時讀取獎牌數量
+    var medalCount by remember { mutableStateOf(loadMedalCount(context)) }
+
     var showQuizPage by remember { mutableStateOf(false) }
     var showLearningPage by remember { mutableStateOf(false) }
     var showStartPage by remember { mutableStateOf(true) }
     var showScorePage by remember { mutableStateOf(false) }
     var showStampCollectionPage by remember { mutableStateOf(false) }
     var finalScore by remember { mutableStateOf(0) }
-    var medalCount by remember { mutableStateOf(0) }  // 新增計數器記錄獎牌數量
 
     Box(
         modifier = Modifier
@@ -82,11 +100,10 @@ fun Start(m: Modifier) {
                                 .height(60.dp)
                                 .width(200.dp)
                         ) {
-                            Text("測驗",style = TextStyle(
-                                fontSize = 24.sp, // 設定字體大小
-                                fontWeight = FontWeight.Bold)
-
-                            )
+                            Text("測驗",
+                                style = TextStyle(
+                                    fontSize = 24.sp, // 設定字體大小
+                                    fontWeight = FontWeight.Bold))
                         }
 
                         Button(
@@ -98,9 +115,8 @@ fun Start(m: Modifier) {
                         ) {
                             Text("學習",
                                 style = TextStyle(
-                                fontSize = 24.sp, // 設定字體大小
-                                fontWeight = FontWeight.Bold)
-                            )
+                                    fontSize = 24.sp, // 設定字體大小
+                                    fontWeight = FontWeight.Bold))
                         }
 
                         Button(
@@ -113,8 +129,7 @@ fun Start(m: Modifier) {
                             Text("集章",
                                 style = TextStyle(
                                     fontSize = 24.sp, // 設定字體大小
-                                    fontWeight = FontWeight.Bold)
-                            )
+                                    fontWeight = FontWeight.Bold))
                         }
                     }
                 }
@@ -126,9 +141,9 @@ fun Start(m: Modifier) {
                     })
                 }
                 showScorePage -> {
-                    // 傳遞 onBackToStart 以增加獎牌
                     ScorePage(score = finalScore, onBackToStart = {
                         medalCount++  // 每次返回主頁時增加獎牌數量
+                        saveMedalCount(context, medalCount)  // 保存獎牌數量
                         showScorePage = false
                         showStartPage = true
                     })
@@ -137,17 +152,18 @@ fun Start(m: Modifier) {
                     LearningPage(onFinish = {
                         showLearningPage = false
                         medalCount++  // 每次學習結束後增加一個獎牌
+                        saveMedalCount(context, medalCount)  // 保存獎牌數量
                         showStartPage = true
                     })
                 }
                 showStampCollectionPage -> {
-                    // 在這裡傳遞 medalCount 和 onRedeem
                     StampCollectionPage(
                         onBackToStart = { showStampCollectionPage = false; showStartPage = true },
                         medalCount = medalCount,
                         onRedeem = {
                             if (medalCount >= 10) {
                                 medalCount -= 10  // 減少 10 個獎牌
+                                saveMedalCount(context, medalCount)  // 保存獎牌數量
                             }
                         }
                     )
@@ -156,6 +172,7 @@ fun Start(m: Modifier) {
         }
     }
 }
+
 
 
 @Composable
