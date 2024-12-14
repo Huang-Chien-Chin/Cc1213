@@ -45,6 +45,8 @@ fun Start(m: Modifier) {
     var showQuizPage by remember { mutableStateOf(false) }
     var showLearningPage by remember { mutableStateOf(false) }
     var showStartPage by remember { mutableStateOf(true) }  // 新增控制主頁顯示的變數
+    var showScorePage by remember { mutableStateOf(false) } // 控制分數頁顯示
+    var finalScore by remember { mutableStateOf(0) } // 記錄最後分數
 
     Box(
         modifier = Modifier
@@ -63,7 +65,8 @@ fun Start(m: Modifier) {
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (showStartPage) {
+            when {
+                showStartPage -> {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
@@ -101,13 +104,63 @@ fun Start(m: Modifier) {
 
                     }
                 }
-            } else if (showQuizPage) {
-                QuizPage() // 顯示測驗頁面
-            } else if (showLearningPage) {
-                LearningPage(onFinish = {
-                    showLearningPage = false // 按下完成後隱藏學習頁面
-                    showStartPage = true // 顯示主頁
+            } showQuizPage -> {
+                QuizPage(onFinishQuiz = { score ->
+                    finalScore = score
+                    showQuizPage = false
+                    showScorePage = true
                 })
+            }
+                showScorePage -> {
+                    ScorePage(score = finalScore) {
+                        showScorePage = false
+                        showStartPage = true
+                    }
+                }
+                showLearningPage -> {
+                    LearningPage(onFinish = {
+                        showLearningPage = false
+                        showStartPage = true
+                    })
+                }
+            }
+        }
+    }
+}
+
+// 新增分數頁面
+@Composable
+fun ScorePage(score: Int, onBackToStart: () -> Unit) {
+    val message = when {
+        score > 79 -> "太厲害了!"
+        score in 60..79 -> "不錯喔!"
+        else -> "再加油~"
+    }
+
+    // 顯示背景圖片
+    Image(
+        painter = painterResource(id = R.drawable.congratulation1), // 替換為您想要的背景圖片資源
+        contentDescription = "背景圖",
+        contentScale = ContentScale.FillBounds,
+        modifier = Modifier.fillMaxSize()
+    )
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("得分: $score", style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(message, style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Medium))
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(onClick = onBackToStart) {
+                Text("返回主頁", style = TextStyle(fontSize = 20.sp))
             }
         }
     }
@@ -242,7 +295,7 @@ fun LearningPage(onFinish: () -> Unit) { // 添加 onFinish 回調
 
 // 測驗頁面組件
 @Composable
-fun QuizPage() {
+fun QuizPage(onFinishQuiz: (Int) -> Unit) {
     val fruits = listOf(
         Pair(R.drawable.durian, "榴蓮"),
         Pair(R.drawable.apple, "蘋果"),
@@ -270,6 +323,7 @@ fun QuizPage() {
     var currentQuestionIndex by remember { mutableStateOf(0) }
     var selectedAnswer by remember { mutableStateOf("") }
     val buttonColors = remember { mutableStateMapOf<String, Color>() }
+    var score by remember { mutableStateOf(0) } // 分數追蹤
 
     val currentQuestion = questions[currentQuestionIndex]
 
@@ -282,6 +336,16 @@ fun QuizPage() {
             verticalArrangement = Arrangement.Center,
             modifier = Modifier.padding(16.dp)
         ) {
+            Text(
+                "${currentQuestionIndex + 1}/${questions.size}",
+                style = TextStyle(
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold  // 加粗題數
+                )
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Image(
                 painter = painterResource(id = currentQuestion.imageId),
                 contentDescription = "Fruit Image",
@@ -294,6 +358,7 @@ fun QuizPage() {
                     onClick = {
                         selectedAnswer = answer
                         buttonColors.clear()
+
                         currentQuestion.answers.forEach { option ->
                             buttonColors[option] = if (option == currentQuestion.correctAnswer) {
                                 Color.Green
@@ -301,53 +366,41 @@ fun QuizPage() {
                                 Color.Red
                             }
                         }
+
+                        if (answer == currentQuestion.correctAnswer) {
+                            score += 10
+                        }
                     },
                     modifier = Modifier
                         .padding(8.dp)
                         .fillMaxWidth()
                         .height(50.dp),
+
                     colors = ButtonDefaults.buttonColors(containerColor = color)
                 ) {
-                    Text(
-                        text = answer,
-                        style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    )
+                    Text(answer, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold))
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    if (currentQuestionIndex < questions.size - 1) {
+                        currentQuestionIndex++
+                        selectedAnswer = ""
+                        buttonColors.clear()
+                    } else {
+                        onFinishQuiz(score)
+                    }
+                },
+                enabled = selectedAnswer.isNotEmpty()
             ) {
-                Button(
-                    onClick = {
-                        if (currentQuestionIndex < questions.size - 1) {
-                            currentQuestionIndex++
-                            selectedAnswer = ""
-                            buttonColors.clear()
-                        }
-                    },
-                    enabled = selectedAnswer.isNotEmpty()
-                ) {
-                    Text("下一頁")
-                }
+                Text(if (currentQuestionIndex < questions.size - 1) "下一頁" else "完成測驗")
             }
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 // 題目資料類別
