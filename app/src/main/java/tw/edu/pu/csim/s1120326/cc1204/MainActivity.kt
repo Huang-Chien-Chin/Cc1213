@@ -7,6 +7,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +24,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import tw.edu.pu.csim.s1120326.cc1204.ui.theme.Cc1204Theme
 import kotlin.random.Random
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,24 +41,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-
 // 主頁面組件
 @Composable
 fun Start(m: Modifier) {
-    // 管理顯示狀態，控制顯示哪一個頁面
     var showQuizPage by remember { mutableStateOf(false) }
     var showLearningPage by remember { mutableStateOf(false) }
-    var showStartPage by remember { mutableStateOf(true) }  // 新增控制主頁顯示的變數
-    var showScorePage by remember { mutableStateOf(false) } // 控制分數頁顯示
-    var finalScore by remember { mutableStateOf(0) } // 記錄最後分數
+    var showStartPage by remember { mutableStateOf(true) }
+    var showScorePage by remember { mutableStateOf(false) }
+    var showStampCollectionPage by remember { mutableStateOf(false) }
+    var finalScore by remember { mutableStateOf(0) }
+    var medalCount by remember { mutableStateOf(0) }  // 新增計數器記錄獎牌數量
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.LightGray)
     ) {
-        // 顯示全螢幕背景圖片
         Image(
             painter = painterResource(id = R.drawable.background),
             contentDescription = "背景圖",
@@ -67,68 +70,94 @@ fun Start(m: Modifier) {
         ) {
             when {
                 showStartPage -> {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = m
-                ) {
-                    Button(
-                        onClick = { showQuizPage = true; showStartPage = false },
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .height(60.dp)  // 調整按鈕高度
-                            .width(200.dp)  // 調整按鈕寬度
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = m
                     ) {
-                        Text("測驗",
-                            style = TextStyle(
-                                fontSize = 24.sp, // 設定字體大小
-                            fontWeight = FontWeight.Bold)
-                        )
-                    }
-
-                    Button(
-                        onClick = { showLearningPage = true; showStartPage = false },
-                        modifier = Modifier
-                            .padding(16.dp)
-                            .height(60.dp)  // 調整按鈕高度
-                            .width(200.dp)  // 調整按鈕寬度
-
-
-                    ) {
-                        Text("學習",
-                            style = TextStyle(
+                        Button(
+                            onClick = { showQuizPage = true; showStartPage = false },
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .height(60.dp)
+                                .width(200.dp)
+                        ) {
+                            Text("測驗",style = TextStyle(
                                 fontSize = 24.sp, // 設定字體大小
                                 fontWeight = FontWeight.Bold)
-                        )
 
+                            )
+                        }
 
+                        Button(
+                            onClick = { showLearningPage = true; showStartPage = false },
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .height(60.dp)
+                                .width(200.dp)
+                        ) {
+                            Text("學習",
+                                style = TextStyle(
+                                fontSize = 24.sp, // 設定字體大小
+                                fontWeight = FontWeight.Bold)
+                            )
+                        }
+
+                        Button(
+                            onClick = { showStampCollectionPage = true; showStartPage = false },
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .height(60.dp)
+                                .width(200.dp)
+                        ) {
+                            Text("集章",
+                                style = TextStyle(
+                                    fontSize = 24.sp, // 設定字體大小
+                                    fontWeight = FontWeight.Bold)
+                            )
+                        }
                     }
                 }
-            } showQuizPage -> {
-                QuizPage(onFinishQuiz = { score ->
-                    finalScore = score
-                    showQuizPage = false
-                    showScorePage = true
-                })
-            }
+                showQuizPage -> {
+                    QuizPage(onFinishQuiz = { score ->
+                        finalScore = score
+                        showQuizPage = false
+                        showScorePage = true
+                    })
+                }
                 showScorePage -> {
-                    ScorePage(score = finalScore) {
+                    // 傳遞 onBackToStart 以增加獎牌
+                    ScorePage(score = finalScore, onBackToStart = {
+                        medalCount++  // 每次返回主頁時增加獎牌數量
                         showScorePage = false
                         showStartPage = true
-                    }
+                    })
                 }
                 showLearningPage -> {
                     LearningPage(onFinish = {
                         showLearningPage = false
+                        medalCount++  // 每次學習結束後增加一個獎牌
                         showStartPage = true
                     })
+                }
+                showStampCollectionPage -> {
+                    // 在這裡傳遞 medalCount 和 onRedeem
+                    StampCollectionPage(
+                        onBackToStart = { showStampCollectionPage = false; showStartPage = true },
+                        medalCount = medalCount,
+                        onRedeem = {
+                            if (medalCount >= 10) {
+                                medalCount -= 10  // 減少 10 個獎牌
+                            }
+                        }
+                    )
                 }
             }
         }
     }
 }
 
-// 新增分數頁面
+
 @Composable
 fun ScorePage(score: Int, onBackToStart: () -> Unit) {
     val message = when {
@@ -139,7 +168,7 @@ fun ScorePage(score: Int, onBackToStart: () -> Unit) {
 
     // 顯示背景圖片
     Image(
-        painter = painterResource(id = R.drawable.congratulation1), // 替換為您想要的背景圖片資源
+        painter = painterResource(id = R.drawable.congratulation1),
         contentDescription = "背景圖",
         contentScale = ContentScale.FillBounds,
         modifier = Modifier.fillMaxSize()
@@ -159,25 +188,24 @@ fun ScorePage(score: Int, onBackToStart: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Button(onClick = onBackToStart) {
+            Button(onClick = onBackToStart) {  // 返回主頁時呼叫 onBackToStart
                 Text("返回主頁", style = TextStyle(fontSize = 20.sp))
             }
         }
     }
 }
 
-// 學習頁面組件
+
+
 @Composable
-fun LearningPage(onFinish: () -> Unit) { // 添加 onFinish 回調
+fun LearningPage(onFinish: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
 
-    // 顯示背景色
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.LightGray)
     ) {
-        // 顯示全螢幕背景圖片
         Image(
             painter = painterResource(id = R.drawable.cnmb),
             contentDescription = "背景圖",
@@ -261,7 +289,7 @@ fun LearningPage(onFinish: () -> Unit) { // 添加 onFinish 回調
         Row(
             modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically // 垂直對齊
+            verticalAlignment = Alignment.CenterVertically
         ){
             Button(
                 onClick = { if (currentIndex > 0) currentIndex-- },
@@ -286,9 +314,68 @@ fun LearningPage(onFinish: () -> Unit) { // 添加 onFinish 回調
                 ) {
                     Text("結束")
                 }
+            }
+        }
+    }
+}
 
+@Composable
+fun StampCollectionPage(onBackToStart: () -> Unit, medalCount: Int, onRedeem: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Text(
+                "我的獎牌",
+                style = TextStyle(fontSize = 32.sp, fontWeight = FontWeight.Bold)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 將獎牌數量按每行顯示最多5個進行分組
+            val medalRows = (1..medalCount).chunked(5)
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items(medalRows) { row ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        row.forEach {
+                            Image(
+                                painter = painterResource(id = R.drawable.medal),
+                                contentDescription = "Medal",
+                                modifier = Modifier.size(60.dp) // 可以調整大小
+                            )
+                        }
+                    }
+                }
             }
 
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 當獎牌數量達到 10 個或更多時顯示「兌換」按鈕
+            if (medalCount >= 10) {
+                Button(
+                    onClick = onRedeem,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text("兌換", style = TextStyle(fontSize = 20.sp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(onClick = onBackToStart) {
+                Text("返回主頁", style = TextStyle(fontSize = 20.sp))
+            }
         }
     }
 }
@@ -449,5 +536,3 @@ fun DefaultPreview() {
         Start(m = Modifier) // 預覽主頁面
     }
 }
-
-
