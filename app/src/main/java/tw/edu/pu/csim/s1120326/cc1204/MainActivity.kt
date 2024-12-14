@@ -8,8 +8,6 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +25,7 @@ import tw.edu.pu.csim.s1120326.cc1204.ui.theme.Cc1204Theme
 import kotlin.random.Random
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import kotlinx.coroutines.delay
 
 
 class MainActivity : ComponentActivity() {
@@ -70,6 +69,27 @@ fun Start(m: Modifier) {
     var showStampCollectionPage by remember { mutableStateOf(false) }
     var finalScore by remember { mutableStateOf(0) }
 
+    // 用於循環播放音效
+    var mediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
+    // 播放音效，延遲 1 秒後
+    LaunchedEffect(showStartPage) {
+        if (showStartPage) {
+
+            // 只有在顯示初始頁面時才播放音效
+            mediaPlayer = MediaPlayer.create(context, R.raw.cool).apply {
+                isLooping = true
+                start()
+            }
+        } else {
+            // 停止音效播放並釋放資源
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = null
+        }
+    }
+    // 控制音效播放的狀態
+    var isSoundPlaying by remember { mutableStateOf(true) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -94,42 +114,91 @@ fun Start(m: Modifier) {
                         modifier = m
                     ) {
                         Button(
-                            onClick = { showQuizPage = true; showStartPage = false },
+                            onClick = {
+                                // 停止音效播放
+                                mediaPlayer?.stop()
+                                mediaPlayer?.release()
+                                mediaPlayer = null
+
+                                // 播放新的音效
+                                val mediaPlayer = MediaPlayer.create(context, R.raw.quiz) // 替換為你的音效檔案
+                                mediaPlayer.start()
+                                mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+
+                                // 切換頁面
+                                showQuizPage = true
+                                showStartPage = false
+                            },
                             modifier = Modifier
                                 .padding(16.dp)
                                 .height(60.dp)
                                 .width(200.dp)
                         ) {
-                            Text("測驗",
+                            Text(
+                                "測驗",
                                 style = TextStyle(
-                                    fontSize = 24.sp, // 設定字體大小
-                                    fontWeight = FontWeight.Bold))
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
                         }
 
                         Button(
-                            onClick = { showLearningPage = true; showStartPage = false },
+                            onClick = {
+                                // 停止音效播放
+                                mediaPlayer?.stop()
+                                mediaPlayer?.release()
+                                mediaPlayer = null
+
+                                // 播放新的音效
+                                val mediaPlayer = MediaPlayer.create(context, R.raw.learning)
+                                mediaPlayer.start()
+                                mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+
+                                showLearningPage = true
+                                showStartPage = false
+                            },
                             modifier = Modifier
                                 .padding(16.dp)
                                 .height(60.dp)
                                 .width(200.dp)
                         ) {
-                            Text("學習",
+                            Text(
+                                "學習",
                                 style = TextStyle(
                                     fontSize = 24.sp, // 設定字體大小
-                                    fontWeight = FontWeight.Bold))
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
                         }
 
                         Button(
-                            onClick = { showStampCollectionPage = true; showStartPage = false },
+                            onClick = {
+                                // 停止音效播放
+                                mediaPlayer?.stop()
+                                mediaPlayer?.release()
+                                mediaPlayer = null
+
+                                // 播放新的音效
+                                val mediaPlayer = MediaPlayer.create(context, R.raw.view)
+                                mediaPlayer.start()
+                                mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+
+                                showStampCollectionPage = true
+                                showStartPage = false
+                            },
                             modifier = Modifier
                                 .padding(16.dp)
                                 .height(60.dp)
                                 .width(200.dp)
                         ) {
-                            Text("集章",
+                            Text(
+                                "集章",
                                 style = TextStyle(
                                     fontSize = 24.sp, // 設定字體大小
-                                    fontWeight = FontWeight.Bold))
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
                         }
                     }
                 }
@@ -177,10 +246,30 @@ fun Start(m: Modifier) {
 
 @Composable
 fun ScorePage(score: Int, onBackToStart: () -> Unit) {
+    val context = LocalContext.current
+    val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
+
     val message = when {
-        score > 79 -> "太厲害了!"
-        score in 60..79 -> "不錯喔!"
-        else -> "再加油~"
+        score > 79 -> "太厲害了!" // 分數大於 79 顯示 "太厲害了!"
+        score in 60..79 -> "不錯喔!" // 分數在 60 到 79 之間顯示 "不錯喔!"
+        else -> "再加油~" // 分數小於 60 顯示 "再加油~"
+    }
+
+    // 播放音效
+    LaunchedEffect(score) {
+        mediaPlayer.value?.release()  // 停止並釋放舊的音效資源
+
+        mediaPlayer.value = when {
+            score > 79 -> MediaPlayer.create(context, R.raw.bingo2) // 分數大於 79 播放 "bingo2" 音效
+            score in 60..79 -> MediaPlayer.create(context, R.raw.fine) // 分數在 60 到 79 播放 "fine" 音效
+            else -> MediaPlayer.create(context, R.raw.sad) // 分數小於 60 播放 "sad" 音效
+        }
+
+        mediaPlayer.value?.start()  // 播放音效
+        mediaPlayer.value?.setOnCompletionListener {
+            mediaPlayer.value?.release() // 釋放資源
+            mediaPlayer.value = null      // 清空 mediaPlayer
+        }
     }
 
     // 顯示背景圖片
@@ -214,9 +303,14 @@ fun ScorePage(score: Int, onBackToStart: () -> Unit) {
 
 
 
+
 @Composable
 fun LearningPage(onFinish: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // 用於播放成功音效的 MediaPlayer
+    val mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
 
     Box(
         modifier = Modifier
@@ -231,7 +325,6 @@ fun LearningPage(onFinish: () -> Unit) {
         )
     }
 
-    val context = LocalContext.current
     val fruits = listOf(
         Triple(R.drawable.durian, listOf(R.raw.durianc, R.raw.duriane, R.raw.duriant), "榴蓮"),
         Triple(R.drawable.apple, listOf(R.raw.applec, R.raw.applee, R.raw.applet), "蘋果"),
@@ -273,12 +366,16 @@ fun LearningPage(onFinish: () -> Unit) {
             languages.forEachIndexed { langIndex, language ->
                 Button(
                     onClick = {
-                        val mediaPlayer = MediaPlayer.create(
+                        // 釋放先前的 MediaPlayer 並創建新的
+                        mediaPlayer.value?.release() // 釋放先前的 MediaPlayer
+                        mediaPlayer.value = MediaPlayer.create(
                             context,
                             currentFruit.second.getOrElse(langIndex) { currentFruit.second[0] }
                         )
-                        mediaPlayer.start()  // 播放語音
-                        mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+                        mediaPlayer.value?.start()  // 播放語音
+                        mediaPlayer.value?.setOnCompletionListener {
+                            it.release()
+                        }
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -326,7 +423,17 @@ fun LearningPage(onFinish: () -> Unit) {
 
             if (currentIndex == allItems.size - 1) {
                 Button(
-                    onClick = { onFinish() }, // 呼叫 onFinish 回到主頁
+                    onClick = {
+                        // 停止並釋放音效
+                        mediaPlayer.value?.let { player ->
+                            if (player.isPlaying) {
+                                player.stop()  // 停止音效
+                            }
+                            player.release()  // 釋放資源
+                        }
+                        mediaPlayer.value = null // 清空 mediaPlayer
+                        onFinish() // 呼叫 onFinish 回到主頁
+                    },
                     modifier = Modifier.padding(20.dp)
                 ) {
                     Text("結束")
@@ -400,6 +507,7 @@ fun StampCollectionPage(onBackToStart: () -> Unit, medalCount: Int, onRedeem: ()
 // 測驗頁面組件
 @Composable
 fun QuizPage(onFinishQuiz: (Int) -> Unit) {
+    val context = LocalContext.current
     val fruits = listOf(
         Pair(R.drawable.durian, "榴蓮"),
         Pair(R.drawable.apple, "蘋果"),
@@ -471,6 +579,16 @@ fun QuizPage(onFinishQuiz: (Int) -> Unit) {
                             }
                         }
 
+                        // 播放音效
+                        val soundRes = if (answer == currentQuestion.correctAnswer) {
+                            R.raw.bingo // 正確音效
+                        } else {
+                            R.raw.wrong // 錯誤音效
+                        }
+                        val mediaPlayer = MediaPlayer.create(context, soundRes)
+                        mediaPlayer.start()
+                        mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+
                         if (answer == currentQuestion.correctAnswer) {
                             score += 10
                         }
@@ -495,6 +613,14 @@ fun QuizPage(onFinishQuiz: (Int) -> Unit) {
                         selectedAnswer = ""
                         buttonColors.clear()
                     } else {
+                        // 播放滿分音效（若得分為 100 分）
+                        if (score == questions.size * 10) {
+                            val fullScoreMediaPlayer = MediaPlayer.create(context, R.raw.bingo2)
+                            fullScoreMediaPlayer.start()
+                            fullScoreMediaPlayer.setOnCompletionListener {
+                                fullScoreMediaPlayer.release()
+                            }
+                        }
                         onFinishQuiz(score)
                     }
                 },
