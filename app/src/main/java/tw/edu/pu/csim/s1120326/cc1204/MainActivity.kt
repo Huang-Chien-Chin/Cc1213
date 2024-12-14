@@ -25,7 +25,8 @@ import tw.edu.pu.csim.s1120326.cc1204.ui.theme.Cc1204Theme
 import kotlin.random.Random
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import kotlinx.coroutines.delay
+
+
 
 
 class MainActivity : ComponentActivity() {
@@ -56,12 +57,13 @@ fun saveMedalCount(context: Context, medalCount: Int) {
 }
 
 // 主頁面組件
+// 主頁面組件
 @Composable
 fun Start(m: Modifier) {
     val context = LocalContext.current
+
     // 在第一次組件創建時讀取獎牌數量
     var medalCount by remember { mutableStateOf(loadMedalCount(context)) }
-
     var showQuizPage by remember { mutableStateOf(false) }
     var showLearningPage by remember { mutableStateOf(false) }
     var showStartPage by remember { mutableStateOf(true) }
@@ -71,10 +73,10 @@ fun Start(m: Modifier) {
 
     // 用於循環播放音效
     var mediaPlayer: MediaPlayer? by remember { mutableStateOf(null) }
-    // 播放音效，延遲 1 秒後
+
+    // 播放音效，並在組件退出時釋放資源
     LaunchedEffect(showStartPage) {
         if (showStartPage) {
-
             // 只有在顯示初始頁面時才播放音效
             mediaPlayer = MediaPlayer.create(context, R.raw.cool).apply {
                 isLooping = true
@@ -87,8 +89,14 @@ fun Start(m: Modifier) {
             mediaPlayer = null
         }
     }
-    // 控制音效播放的狀態
-    var isSoundPlaying by remember { mutableStateOf(true) }
+
+    // 使用 DisposableEffect 在組件卸載時清理資源
+    DisposableEffect(context) {
+        onDispose {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -202,6 +210,7 @@ fun Start(m: Modifier) {
                         }
                     }
                 }
+
                 showQuizPage -> {
                     QuizPage(onFinishQuiz = { score ->
                         finalScore = score
@@ -241,6 +250,7 @@ fun Start(m: Modifier) {
         }
     }
 }
+
 
 
 
