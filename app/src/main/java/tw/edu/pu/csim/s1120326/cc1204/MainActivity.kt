@@ -543,7 +543,7 @@ fun QuizPage(onFinishQuiz: (Int) -> Unit) {
 
     val questions = remember { generateQuestions(fruits) }
     var currentQuestionIndex by remember { mutableStateOf(0) }
-    var selectedAnswer by remember { mutableStateOf("") }
+    var hasAnswered by remember { mutableStateOf(false) } // 控制是否已回答
     val buttonColors = remember { mutableStateMapOf<String, Color>() }
     var score by remember { mutableStateOf(0) } // 分數追蹤
 
@@ -578,37 +578,34 @@ fun QuizPage(onFinishQuiz: (Int) -> Unit) {
                 val color = buttonColors[answer] ?: Color.Gray
                 Button(
                     onClick = {
-                        selectedAnswer = answer
-                        buttonColors.clear()
+                        if (!hasAnswered) {
+                            hasAnswered = true
 
-                        currentQuestion.answers.forEach { option ->
-                            buttonColors[option] = if (option == currentQuestion.correctAnswer) {
-                                Color.Green
-                            } else {
-                                Color.Red
+                            currentQuestion.answers.forEach { option ->
+                                buttonColors[option] = when {
+                                    option == currentQuestion.correctAnswer -> Color.Green // 正確答案綠色
+                                    else -> Color.Red // 錯誤答案紅色
+                                }
                             }
-                        }
 
-                        // 播放音效
-                        val soundRes = if (answer == currentQuestion.correctAnswer) {
-                            R.raw.bingo // 正確音效
-                        } else {
-                            R.raw.wrong // 錯誤音效
-                        }
-                        val mediaPlayer = MediaPlayer.create(context, soundRes)
-                        mediaPlayer.start()
-                        mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
-
-                        if (answer == currentQuestion.correctAnswer) {
-                            score += 10
+                            // 播放音效並更新分數
+                            val soundRes = if (answer == currentQuestion.correctAnswer) {
+                                score += 10
+                                R.raw.bingo // 正確音效
+                            } else {
+                                R.raw.wrong // 錯誤音效
+                            }
+                            val mediaPlayer = MediaPlayer.create(context, soundRes)
+                            mediaPlayer.start()
+                            mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
                         }
                     },
                     modifier = Modifier
                         .padding(8.dp)
                         .fillMaxWidth()
                         .height(50.dp),
-
-                    colors = ButtonDefaults.buttonColors(containerColor = color)
+                    colors = ButtonDefaults.buttonColors(containerColor = color),
+                    enabled = !hasAnswered || buttonColors.isNotEmpty() // 禁用按鈕選項
                 ) {
                     Text(answer, style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold))
                 }
@@ -620,7 +617,7 @@ fun QuizPage(onFinishQuiz: (Int) -> Unit) {
                 onClick = {
                     if (currentQuestionIndex < questions.size - 1) {
                         currentQuestionIndex++
-                        selectedAnswer = ""
+                        hasAnswered = false
                         buttonColors.clear()
                     } else {
                         // 播放滿分音效（若得分為 100 分）
@@ -634,13 +631,16 @@ fun QuizPage(onFinishQuiz: (Int) -> Unit) {
                         onFinishQuiz(score)
                     }
                 },
-                enabled = selectedAnswer.isNotEmpty()
+                enabled = hasAnswered // 必須回答才能進入下一題
             ) {
                 Text(if (currentQuestionIndex < questions.size - 1) "下一頁" else "完成測驗")
             }
         }
     }
 }
+
+
+
 
 
 // 題目資料類別
@@ -650,29 +650,27 @@ data class Question(
     val answers: List<String> // 答案選項
 )
 
-// 生成隨機題目的函數
 fun generateQuestions(fruits: List<Pair<Int, String>>): List<Question> {
+    val availableFruits = fruits.shuffled().toMutableList() // 將水果洗牌後用作題庫
     val questions = mutableListOf<Question>()
 
-    repeat(10) {
-        // 隨機選擇正確答案
-        val correctAnswerIndex = Random.nextInt(fruits.size)
-        val correctAnswer = fruits[correctAnswerIndex].second
+    repeat(minOf(10, availableFruits.size)) { // 確保不超過題庫大小
+        // 從剩餘水果中選擇正確答案
+        val correctFruit = availableFruits.removeAt(0)
 
-        // 隨機選擇兩個錯誤答案
-        val incorrectAnswers = fruits.filter { it.second != correctAnswer }
-            .shuffled()
-            .take(2)
+        // 從剩餘水果中選擇錯誤答案
+        val incorrectAnswers = availableFruits.shuffled()
+            .take(2) // 選兩個錯誤答案
             .map { it.second }
 
         // 將答案洗牌
-        val answers = (incorrectAnswers + correctAnswer).shuffled()
+        val answers = (incorrectAnswers + correctFruit.second).shuffled()
 
         // 創建新的問題
         questions.add(
             Question(
-                imageId = fruits[correctAnswerIndex].first,
-                correctAnswer = correctAnswer,
+                imageId = correctFruit.first,
+                correctAnswer = correctFruit.second,
                 answers = answers
             )
         )
@@ -680,6 +678,7 @@ fun generateQuestions(fruits: List<Pair<Int, String>>): List<Question> {
 
     return questions
 }
+
 
 // 預覽函數
 @Preview(showBackground = true)
